@@ -4,20 +4,43 @@ import random
 
 root = tk.Tk()
 root.title("Memory Game")
-root.geometry("420x480")
-root.configure(bg="#1e1e2f")  # dark background
+root.geometry("420x520")
+root.configure(bg="#1e1e2f")
 
-symbols = ['🍎','🍎','🍌','🍌','🍒','🍒','🍇','🍇',
-           '🍉','🍉','🥝','🥝','🍍','🍍','🍑','🍑']
-
-random.shuffle(symbols)
+symbols_list = ['🍎','🍌','🍒','🍇','🍉','🥝','🍍','🍑']
 
 buttons = []
 revealed = []
 matched = []
+symbols = []
+
+time_elapsed = 0
+timer_running = False
+
+
+def start_game():
+    global symbols, revealed, matched, time_elapsed, timer_running
+
+
+    revealed = []
+    matched = []
+    time_elapsed = 0
+    timer_running = True
+
+    symbols = symbols_list * 2
+    random.shuffle(symbols)
+
+
+    for i in range(16):
+        buttons[i].config(text="", bg="#3b3b58", state="normal")
+
+    win_label.config(text="")
+    update_timer()
 
 
 def on_click(index):
+    global timer_running
+
     if index in matched or index in revealed:
         return
 
@@ -38,11 +61,9 @@ def check_match():
 
     if symbols[i1] == symbols[i2]:
         matched.extend([i1, i2])
-        # Green for matched
         buttons[i1].config(bg="#4CAF50", fg="white")
         buttons[i2].config(bg="#4CAF50", fg="white")
     else:
-        # Flip back
         buttons[i1].config(text="", bg="#3b3b58", state="normal")
         buttons[i2].config(text="", bg="#3b3b58", state="normal")
 
@@ -50,11 +71,42 @@ def check_match():
 
     if len(matched) == 16:
         win_label.config(text="🎉 You Win!", fg="#FFD700")
+        stop_timer()
 
 
+def update_timer():
+    global time_elapsed
+
+    if timer_running:
+        mins = time_elapsed // 60
+        secs = time_elapsed % 60
+        timer_label.config(text=f"Time: {mins:02}:{secs:02}")
+        time_elapsed += 1
+        root.after(1000, update_timer)
+
+
+def stop_timer():
+    global timer_running
+    timer_running = False
+
+
+
+title = tk.Label(root,
+                 text="Memory Game",
+                 font=("Arial", 20, "bold"),
+                 bg="#1e1e2f",
+                 fg="white")
+title.pack(pady=10)
+
+timer_label = tk.Label(root,
+                       text="Time: 00:00",
+                       font=("Arial", 14),
+                       bg="#1e1e2f",
+                       fg="#00ffcc")
+timer_label.pack()
 
 frame = tk.Frame(root, bg="#1e1e2f")
-frame.pack(pady=20)
+frame.pack(pady=10)
 
 for i in range(16):
     btn = tk.Button(frame,
@@ -62,7 +114,7 @@ for i in range(16):
                     width=6,
                     height=3,
                     font=("Arial", 14),
-                    bg="#3b3b58",        
+                    bg="#3b3b58",
                     fg="white",
                     activebackground="#6c63ff",
                     command=lambda i=i: on_click(i))
@@ -70,19 +122,21 @@ for i in range(16):
     btn.grid(row=i//4, column=i%4, padx=5, pady=5)
     buttons.append(btn)
 
-title = tk.Label(root,
-                 text="Memory Game",
-                 font=("Arial", 20, "bold"),
-                 bg="#1e1e2f",
-                 fg="#ffffff")
-title.pack()
+restart_btn = tk.Button(root,
+                        text="🔄 Restart",
+                        font=("Arial", 12, "bold"),
+                        bg="#ff4757",
+                        fg="white",
+                        command=start_game)
+restart_btn.pack(pady=10)
 
 win_label = tk.Label(root,
                      text="",
                      font=("Arial", 16),
-                     bg="#1e1e2f",
-                     fg="#FFD700")
-win_label.pack(pady=10)
+                     bg="#1e1e2f")
+win_label.pack()
 
+
+start_game()
 
 root.mainloop()
