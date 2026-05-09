@@ -4,54 +4,116 @@ import random
 
 root = tk.Tk()
 root.title("Memory Game")
-root.geometry("420x520")
-root.configure(bg="#1e1e2f")
+root.geometry("600x700")
+root.resizable(False, False)
 
-symbols_list = ['🍎','🍌','🍒','🍇','🍉','🥝','🍍','🍑']
 
+levels = [
+    {"rows": 2, "cols": 3, "color": "#3498db"},
+    {"rows": 3, "cols": 4, "color": "#9b59b6"},
+    {"rows": 4, "cols": 4, "color": "#2ecc71"}
+]
+
+current_level = 0
 buttons = []
 revealed = []
 matched = []
 symbols = []
 
 time_elapsed = 0
-timer_running = False
+running = False
+
+emoji_list = [
+    '🍎','🍌','🍇','🍒','🍉','🥝','🍍','🍑',
+    '🥥','🍋','🍓','🥕','🌽','🥑','🍔','🍕'
+]
 
 
-def start_game():
-    global symbols, revealed, matched, time_elapsed, timer_running
 
+def start_level():
+    global buttons, revealed, matched, symbols
+    global time_elapsed, running
 
+    
+    for widget in game_frame.winfo_children():
+        widget.destroy()
+
+    buttons = []
     revealed = []
     matched = []
-    time_elapsed = 0
-    timer_running = True
 
-    symbols = symbols_list * 2
+    rows = levels[current_level]["rows"]
+    cols = levels[current_level]["cols"]
+    color = levels[current_level]["color"]
+
+    root.configure(bg=color)
+    game_frame.configure(bg=color)
+
+    level_label.config(
+        text=f"Level {current_level + 1} - {rows}x{cols}",
+        bg=color
+    )
+
+    timer_label.config(bg=color)
+    win_label.config(text="", bg=color)
+
+    
+    total_cards = rows * cols
+    needed_pairs = total_cards // 2
+
+    selected = emoji_list[:needed_pairs]
+    symbols = selected * 2
+
+    
+    if len(symbols) < total_cards:
+        symbols.append('⭐')
+
     random.shuffle(symbols)
 
+    
+    for i in range(total_cards):
+        btn = tk.Button(
+            game_frame,
+            text="",
+            width=6,
+            height=3,
+            font=("Arial", 14, "bold"),
+            bg="#2c3e50",
+            fg="white",
+            activebackground="#f1c40f",
+            command=lambda i=i: click_card(i)
+        )
 
-    for i in range(16):
-        buttons[i].config(text="", bg="#3b3b58", state="normal")
+        btn.grid(
+            row=i // cols,
+            column=i % cols,
+            padx=5,
+            pady=5
+        )
 
-    win_label.config(text="")
+        buttons.append(btn)
+
+    
+    time_elapsed = 0
+    running = True
     update_timer()
 
 
-def on_click(index):
-    global timer_running
-
+def click_card(index):
     if index in matched or index in revealed:
         return
 
-    buttons[index].config(text=symbols[index],
-                          bg="#ffffff",
-                          fg="#000000",
-                          state="disabled")
+    buttons[index].config(
+        text=symbols[index],
+        bg="white",
+        fg="black",
+        state="disabled"
+    )
+
     revealed.append(index)
 
     if len(revealed) == 2:
-        root.after(500, check_match)
+        root.after(700, check_match)
 
 
 def check_match():
@@ -61,82 +123,117 @@ def check_match():
 
     if symbols[i1] == symbols[i2]:
         matched.extend([i1, i2])
-        buttons[i1].config(bg="#4CAF50", fg="white")
-        buttons[i2].config(bg="#4CAF50", fg="white")
+
+        buttons[i1].config(bg="#27ae60", fg="white")
+        buttons[i2].config(bg="#27ae60", fg="white")
+
     else:
-        buttons[i1].config(text="", bg="#3b3b58", state="normal")
-        buttons[i2].config(text="", bg="#3b3b58", state="normal")
+        buttons[i1].config(
+            text="",
+            bg="#2c3e50",
+            state="normal"
+        )
+
+        buttons[i2].config(
+            text="",
+            bg="#2c3e50",
+            state="normal"
+        )
 
     revealed = []
 
-    if len(matched) == 16:
-        win_label.config(text="🎉 You Win!", fg="#FFD700")
-        stop_timer()
+    
+    if len(matched) >= len(symbols) - 1:
+        next_level()
+
+
+def next_level():
+    global current_level
+    global running
+
+    running = False
+
+    if current_level < len(levels) - 1:
+        win_label.config(text="🎉 Level Complete! Next Level...")
+        current_level += 1
+        root.after(2000, start_level)
+
+    else:
+        win_label.config(text="🏆 Congratulations! You Finished All Levels!")
+
+
 
 
 def update_timer():
     global time_elapsed
 
-    if timer_running:
+    if running:
         mins = time_elapsed // 60
         secs = time_elapsed % 60
-        timer_label.config(text=f"Time: {mins:02}:{secs:02}")
+
+        timer_label.config(
+            text=f"Time: {mins:02}:{secs:02}"
+        )
+
         time_elapsed += 1
         root.after(1000, update_timer)
 
 
-def stop_timer():
-    global timer_running
-    timer_running = False
+
+
+def restart_game():
+    global current_level
+
+    current_level = 0
+    start_level()
 
 
 
-title = tk.Label(root,
-                 text="Memory Game",
-                 font=("Arial", 20, "bold"),
-                 bg="#1e1e2f",
-                 fg="white")
-title.pack(pady=10)
 
-timer_label = tk.Label(root,
-                       text="Time: 00:00",
-                       font=("Arial", 14),
-                       bg="#1e1e2f",
-                       fg="#00ffcc")
+level_label = tk.Label(
+    root,
+    text="Memory Game",
+    font=("Arial", 24, "bold"),
+    fg="white"
+)
+level_label.pack(pady=10)
+
+
+timer_label = tk.Label(
+    root,
+    text="Time: 00:00",
+    font=("Arial", 16),
+    fg="white"
+)
+
 timer_label.pack()
 
-frame = tk.Frame(root, bg="#1e1e2f")
-frame.pack(pady=10)
 
-for i in range(16):
-    btn = tk.Button(frame,
-                    text="",
-                    width=6,
-                    height=3,
-                    font=("Arial", 14),
-                    bg="#3b3b58",
-                    fg="white",
-                    activebackground="#6c63ff",
-                    command=lambda i=i: on_click(i))
-    
-    btn.grid(row=i//4, column=i%4, padx=5, pady=5)
-    buttons.append(btn)
+game_frame = tk.Frame(root)
+game_frame.pack(pady=20)
 
-restart_btn = tk.Button(root,
-                        text="🔄 Restart",
-                        font=("Arial", 12, "bold"),
-                        bg="#ff4757",
-                        fg="white",
-                        command=start_game)
+
+restart_btn = tk.Button(
+    root,
+    text="🔄 Restart Game",
+    font=("Arial", 14, "bold"),
+    bg="#e74c3c",
+    fg="white",
+    command=restart_game
+)
+
 restart_btn.pack(pady=10)
 
-win_label = tk.Label(root,
-                     text="",
-                     font=("Arial", 16),
-                     bg="#1e1e2f")
-win_label.pack()
 
+win_label = tk.Label(
+    root,
+    text="",
+    font=("Arial", 18, "bold"),
+    fg="yellow"
+)
 
-start_game()
+win_label.pack(pady=10)
+
+start_level()
 
 root.mainloop()
